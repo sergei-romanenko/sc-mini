@@ -12,11 +12,12 @@ transform (e, p) =
     residuate $ foldTree $ buildFTree (driveMachine p) e
 
 buildFTree :: Machine Conf -> Conf -> Tree Conf
-buildFTree m e = bft m nameSupply e
+buildFTree m = bft m nameSupply
 
 bft :: Machine Conf -> NameSupply -> Conf -> Tree Conf
 bft d (n:ns) e | whistle e = bft d ns $ generalize n e
-bft d ns     t | otherwise = case d ns t of
+bft d ns     t =
+  case d ns t of
     Decompose comp ds -> Node t $ EDecompose comp $ map (bft d ns) ds
     Transient tr e -> Node t $ ETransient tr $ bft d ns e
     Stop e -> Leaf e

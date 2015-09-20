@@ -13,10 +13,10 @@ readVar1 :: ReadS Name
 readVar1 i = concat [lex s1 | (",", s1) <- lex i]
 
 instance Read Expr where
-    readsPrec _ s = readsExpr s
+    readsPrec _ = readsExpr
 
 instance Read Program where
-    readsPrec _ s = readProgram s
+    readsPrec _ = readProgram
 
 readExpr :: ReadP Expr
 readExpr = readS_to_P readsExpr
@@ -30,10 +30,12 @@ readsExpr i = catMaybes [merge n (readArgs s)  s | (n, s) <- lex i] where
     merge _ _ _ = Nothing
 
 readArgs :: ReadS [Expr]
-readArgs = readP_to_S $ between (char '(') (char ')') (sepBy readExpr (char ','))
+readArgs =
+  readP_to_S $ between (char '(') (char ')') (sepBy readExpr (char ','))
 
 readVars :: ReadS [Name]
-readVars = readP_to_S $ between (char '(') (char ')') (sepBy (readS_to_P lex) (char ','))
+readVars =
+  readP_to_S $ between (char '(') (char ')') (sepBy (readS_to_P lex) (char ','))
 
 readFDef :: ReadS FDef
 readFDef i = [ (FDef n vars body, s4) |
@@ -69,12 +71,22 @@ printTree t = unlines $ take 1000 $ pprintTree "" "" t
 
 pprintTree :: String -> String -> Graph Conf -> [String]
 pprintTree indent msg (Node expr next) = make next where
-    make (EFold _ ren) = (indent ++ msg) : [indent ++ "|__" ++  (show expr) ++ "__^" ++ (show ren)]
-    make (ETransient _ t) = (indent ++ msg) : (indent ++ "|__" ++ show expr) : (pprintTree (indent ++ " ") "|" t)
-    make (EDecompose comp ts) = (indent ++ msg) :  (indent ++ "|__" ++ show expr): (concat (map (pprintTree (indent ++ " ") "|") ts))
+    make (EFold _ ren) =
+      (indent ++ msg) :
+        [indent ++ "|__" ++  show expr ++ "__^" ++ show ren]
+    make (ETransient _ t) =
+      (indent ++ msg) :
+        (indent ++ "|__" ++ show expr) : pprintTree (indent ++ " ") "|" t
+    make (EDecompose comp ts) =
+      (indent ++ msg) :
+        (indent ++ "|__" ++ show expr) :
+          concatMap (pprintTree (indent ++ " ") "|") ts
     make (EVariants cs) =
-        (indent ++ msg) :  (indent ++ "|__" ++  show expr) : (concat (map (\(x, t) -> pprintTree (indent ++ " ") ("?" ++ show x) t) cs))
-pprintTree indent msg (Leaf expr) = (indent ++ msg) : [indent ++ "|__" ++  (show expr)]
+      (indent ++ msg) :
+        (indent ++ "|__" ++  show expr) :
+          concatMap (\(x, t) -> pprintTree (indent ++ " ") ("?" ++ show x) t) cs
+pprintTree indent msg (Leaf expr) =
+    (indent ++ msg) : [indent ++ "|__" ++  show expr]
 
 
 instance Show Expr where
@@ -88,19 +100,22 @@ instance Show Expr where
     show (Ctr "B" []) = "\'B\'"
     -}
     show (Var n) = n
-    show (Ctr n es) = n ++ "(" ++ (intercalate ", " (map show es)) ++ ")"
-    show (FCall n es) = (fn n) ++ "(" ++ (intercalate ", " (map show es)) ++ ")"
-    show (GCall n es) = (fn n) ++ "(" ++ (intercalate ", " (map show es)) ++ ")"
-    show (Let (v, e1) e2) = "let " ++ v ++ " = " ++ (show e1) ++ " in " ++ (show e2)
+    show (Ctr n es) = n ++ "(" ++ intercalate ", " (map show es) ++ ")"
+    show (FCall n es) = fn n ++ "(" ++ intercalate ", " (map show es) ++ ")"
+    show (GCall n es) = fn n ++ "(" ++ intercalate ", " (map show es) ++ ")"
+    show (Let (v, e1) e2) = "let " ++ v ++ " = " ++ show e1 ++ " in " ++ show e2
 
 fn :: String -> String
-fn (_:s:ss) = (toLower s) : ss
+fn (_:s:ss) = toLower s : ss
 
 instance Show FDef where
-    show (FDef n args body) = (fn n) ++ "(" ++ intercalate ", " args ++ ") = " ++ (show body) ++ ";"
+    show (FDef n args body) =
+      fn n ++ "(" ++ intercalate ", " args ++ ") = " ++ show body ++ ";"
 
 instance Show GDef where
-    show (GDef n p args body) = (fn n) ++ "(" ++ intercalate ", " (show p:args) ++ ") = " ++ (show body) ++ ";"
+    show (GDef n p args body) =
+      fn n ++ "(" ++ intercalate ", " (show p:args) ++ ") = "
+        ++ show body ++ ";"
 
 instance Show Pat where
     show (Pat "Nil" vs) = "``\'\'"
@@ -108,26 +123,32 @@ instance Show Pat where
     show (Pat cn vs) = cn ++ "(" ++ intercalate "," vs ++ ")"
 
 instance Show Contraction where
-    show (Contraction n p) = n ++ " == " ++ (show p)
+    show (Contraction n p) = n ++ " == " ++ show p
 
 instance Show Program where
-    show (Program fs gs) = intercalate "\n" $ (map show fs) ++ (map show gs)
+    show (Program fs gs) = intercalate "\n" $ map show fs ++ map show gs
 
 instance Show a => Show (Step a) where
-    show (Transient _ a) = "=> " ++ (show a)
-    show (Variants vs) = intercalate "\n" $ map (\(c, e) -> (show c) ++ " => " ++ (show e)) vs
+    show (Transient _ a) = "=> " ++ show a
+    show (Variants vs) =
+      intercalate "\n" $ map (\(c, e) -> show c ++ " => " ++ show e) vs
     show (Stop _) = "!"
     show (Decompose _ ds) = show ds
 
 -- Latex
 pprintLTree :: Graph Conf -> String
-pprintLTree (Leaf expr) = "node[conf]{" ++ (show expr) ++ "}"
+pprintLTree (Leaf expr) = "node[conf]{" ++ show expr ++ "}"
 pprintLTree (Node expr next) = make next where
-    make (EFold _ _) = "node[conf]{" ++ (show expr) ++ "}"
-    make (ETransient _ t) = "node[conf]{" ++ (show expr) ++ "}\nchild[->]{" ++ (pprintLTree t) ++ "}"
-    make (EDecompose _ ts) = "node[conf]{" ++ (show expr) ++ "}" ++
-        (concat (map (\t -> "\nchild[->]{" ++ (pprintLTree t) ++ "}") ts))
+    make (EFold _ _) =
+      "node[conf]{" ++ show expr ++ "}"
+    make (ETransient _ t) =
+      "node[conf]{" ++ show expr ++ "}\nchild[->]{" ++ pprintLTree t ++ "}"
+    make (EDecompose _ ts) =
+      "node[conf]{" ++ show expr ++ "}" ++
+        concatMap (\t -> "\nchild[->]{" ++ pprintLTree t ++ "}") ts
     make (EVariants [(x1, t1), (x2, t2)]) =
-        "node[conf]{" ++ (show expr) ++ "}" ++
-            ("\nchild[->]{" ++ (pprintLTree t1) ++ "\nedge from parent node[left,label,xshift=-5mm]{" ++ (show x1) ++ "}}") ++
-            ("\nchild[->]{" ++ (pprintLTree t2) ++ "\nedge from parent node[right,label,xshift=5mm]{" ++ (show x2) ++ "}}")
+      "node[conf]{" ++ show expr ++ "}" ++
+        ("\nchild[->]{" ++ pprintLTree t1 ++
+          "\nedge from parent node[left,label,xshift=-5mm]{" ++ show x1 ++ "}}") ++
+        ("\nchild[->]{" ++ pprintLTree t2 ++
+          "\nedge from parent node[right,label,xshift=5mm]{" ++ show x2 ++ "}}")

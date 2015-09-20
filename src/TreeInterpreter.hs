@@ -4,6 +4,7 @@ import Data
 import Data.List
 import DataUtil
 import Data.Maybe
+import Control.Arrow (first)
 
 intTree :: Tree Conf -> Env -> Value
 intTree (Leaf e) env =
@@ -13,17 +14,18 @@ intTree (Leaf e) env =
 intTree (Node (Let (v, e1) e2) (EDecompose _ [t1, t2])) env =
     intTree t2 ((v, intTree t1 env) : env)
 intTree (Node (Ctr cname _) (EDecompose comp ts)) env =
-    comp $ map (\t -> intTree t env) ts
+    comp $ map (`intTree` env) ts
 intTree (Node _ (ETransient _ t)) env =
     intTree t env
 intTree (Node e (EVariants cs)) env =
-    head $ catMaybes $ map (try env) cs
+    head $ mapMaybe (try env) cs
 intTree (Node _ (EFold t ren)) env =
-    intTree t $ map (\(k, v) -> (renKey k, v)) env where
+    --intTree t $ map (\(k, v) -> (renKey k, v)) env where
+    intTree t $ map (first renKey) env where
         renKey k = maybe k fst (find ((k ==) . snd)  ren)
 
-try :: Env -> (Contraction, Tree Conf) -> (Maybe Expr)
+try :: Env -> (Contraction, Tree Conf) -> Maybe Expr
 try env (Contraction v (Pat pn vs), t) =
-    if cn == pn then (Just $ intTree t extEnv) else Nothing where
-        c@(Ctr cn cargs) = (Var v) // env
+    if cn == pn then Just $ intTree t extEnv else Nothing where
+        c@(Ctr cn cargs) = Var v // env
         extEnv = zip vs cargs ++ env

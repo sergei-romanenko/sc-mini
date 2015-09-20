@@ -111,11 +111,11 @@ demo09 =
 
 --     driving (variants)
 demo10 =
-    (driveMachine prog1) nameSupply (read "gOdd(gAdd(x, gMult(x, S(x))))")
+    driveMachine prog1 nameSupply (read "gOdd(gAdd(x, gMult(x, S(x))))")
 
 -- driving (transient step)
 demo11 =
-    (driveMachine prog1) nameSupply (read "gOdd(S(gAdd(v1, gMult(x, S(x)))))")
+    driveMachine prog1 nameSupply (read "gOdd(S(gAdd(v1, gMult(x, S(x)))))")
 
 -- building infinite tree
 demo12 =
@@ -151,24 +151,27 @@ demo17 =
 
 -- even/sqr - just transformation
 demo18 = do
-    let (c2, p2) = transform ((read "gEven(fSqr(x))"), prog1)
+    let (c2, p2) = transform (read "gEven(fSqr(x))", prog1)
     putStrLn "\ntransformation:\n"
-    putStrLn (show c2)
-    putStrLn (show p2)
+    print c2
+    print p2
 
 -- even/sqr - deforestation
 demo19 = do
-    let (c2, p2) = deforest ((read "gEven(fSqr(x))"), prog1)
+    let (c2, p2) = deforest (read "gEven(fSqr(x))", prog1)
     putStrLn "\ndeforestation:\n"
-    putStrLn (show c2)
-    putStrLn (show p2)
+    print c2
+    print p2
+
+demoSupercompile c p = do
+    let (c2, p2) = supercompile (read c, p)
+    putStrLn "supercompilation:\n"
+    print c2
+    print p2
 
 -- even/sqr - supercompilation
-demo20 = do
-    let (c2, p2) = supercompile ((read "gEven(fSqr(x))"), prog1)
-    putStrLn "supercompilation:\n"
-    putStrLn (show c2)
-    putStrLn (show p2)
+demo20 =
+    demoSupercompile "gEven(fSqr(x))" prog1
 
 -- KMP -- transform -- graph
 demo21 =
@@ -190,48 +193,45 @@ g = simplify $ foldTree $ buildFTree (addPropagation (driveMachine prog2)) conf2
 
 demo24 = do
     let (c2, p2) = residuate g
-    putStrLn (show c2)
-    putStrLn (show p2)
+    print c2
+    print p2
 
 -- KMP - transformation
 demo25 = do
     let (c2, p2) = transform (conf2, prog2)
-    putStrLn (show c2)
-    putStrLn (show p2)
+    print c2
+    print p2
 
 -- KMP - deforestation
 demo26 = do
     let (c2, p2) = deforest (conf2, prog2)
-    putStrLn (show c2)
-    putStrLn (show p2)
+    print c2
+    print p2
 
 -- KMP - supercompilation
 demo27 = do
     let (c2, p2) = supercompile (conf2, prog2)
-    putStrLn (show c2)
-    putStrLn (show p2)
+    print c2
+    print p2
 
 -- "program analysis"
 demo30 = do
     let (c2, p2) = supercompile (read "gAdd(gAdd(x, y), z)", prog1)
-    putStrLn (show c2)
-    putStrLn (show p2)
+    print c2
+    print p2
 
 demo31 = do
     let (c2, p2) = supercompile (read "gAdd(x, gAdd(y, z))", prog1)
-    putStrLn (show c2)
-    putStrLn (show p2)
+    print c2
+    print p2
 
 -- supercompiled eqpressions are equal =>
 -- original expressions are equivalent
 demo32 =
     supercompile (read "gAdd(x, gAdd(y, z))", prog1) == supercompile (read "gAdd(gAdd(x, y), z)", prog1)
 
-demo33 = do
-    let (c2, p2) = supercompile ((read "gEq(gHalf(gDouble(n)),n)"), prog3)
-    putStrLn "supercompilation:\n"
-    putStrLn (show c2)
-    putStrLn (show p2)
+demo33 =
+    demoSupercompile "gEq(gHalf(gDouble(n)),n)" prog3
 
 
 -- all further stuff is for "benchmarking"
@@ -251,7 +251,7 @@ t1d = deforest t1
 t1s = supercompile t1
 
 
-run st n = sll_trace st [("x", peano n)]
+run st n = sllTrace st [("x", peano n)]
 
 def (e, p) = simplify $ foldTree $ buildFTree (driveMachine p) e
 tr (e, p) = foldTree $ buildFTree (driveMachine p) e
@@ -263,91 +263,97 @@ peano 0 = Ctr "Z" []
 peano n = Ctr "S" [peano (n - 1)]
 
 
-benchmark0 = map (snd . (run t1)) [0 .. 50]
-benchmark1 = map (snd . (run t1t)) [0 .. 50]
-benchmark2 = map (snd . (run t1d)) [0 .. 50]
-benchmark3 = map (snd . (run t1s)) [0 .. 50]
+benchmark0 = map (snd . run t1) [0 .. 50]
+benchmark1 = map (snd . run t1t) [0 .. 50]
+benchmark2 = map (snd . run t1d) [0 .. 50]
+benchmark3 = map (snd . run t1s) [0 .. 50]
 
-points1 = zipWith3 (\n x1 x2 -> (n, (fromInteger x1) / (fromInteger x2))) [0 .. 50] benchmark0 benchmark1
-points2 = zipWith3 (\n x1 x2 -> (n, (fromInteger x1) / (fromInteger x2))) [0 .. 50] benchmark0 benchmark2
-points3 = zipWith3 (\n x1 x2 -> (n, (fromInteger x1) / (fromInteger x2))) [0 .. 50] benchmark0 benchmark3
+points1 =
+  zipWith3 (\n x1 x2 -> (n, fromInteger x1 / fromInteger x2))
+           [0 .. 50] benchmark0 benchmark1
+points2 =
+  zipWith3 (\n x1 x2 -> (n, fromInteger x1 / fromInteger x2))
+           [0 .. 50] benchmark0 benchmark2
+points3 =
+  zipWith3 (\n x1 x2 -> (n, fromInteger x1 / fromInteger x2))
+           [0 .. 50] benchmark0 benchmark3
 
 testTree1 =
     putStrLn $ printTree $ buildTree (driveMachine prog2) (read "fMatch(Cons(A(), Nil()), Cons(A(), Nil()))")
 
 --- NeighborhoodAnalysis
 data1 :: Conf
-data1 = (read "fMatch(Cons(A(), Nil()), Cons(A(), Cons(A(), Nil())))")
+data1 = read "fMatch(Cons(A(), Nil()), Cons(A(), Cons(A(), Nil())))"
 data1S :: Conf
-data1S = (read "fMatch(x, y)")
+data1S = read "fMatch(x, y)"
 
 testNan1 = nan (addPropagation $ driveMachine prog2) data1 data1S
 
 data2 :: Conf
-data2 = (read "gEqSymb(A(), A())")
+data2 = read "gEqSymb(A(), A())"
 
 data2S :: Conf
-data2S = (read "gEqSymb(y, x)")
+data2S = read "gEqSymb(y, x)"
 
 testNan2 = nan (addPropagation $ driveMachine prog2) data2 data2S
 
 data3 :: Conf
-data3 = (read "fTest(Z(), S(Z()), S(S(Z())))")
+data3 = read "fTest(Z(), S(Z()), S(S(Z())))"
 
 -- x < z
 -- y < z
 data3S :: Conf
-data3S = (read "fTest(x, y, z)")
+data3S = read "fTest(x, y, z)"
 testNan3 = nan (addPropagation $ driveMachine prog1) data3 data3S
 
 -------------
 
 main = do
     putStrLn "demo01"
-    putStrLn (show demo01)
+    print demo01
 
     putStrLn "\ndemo02"
-    putStrLn (show demo02)
+    print demo02
 
     putStrLn "\ndemo03"
-    putStrLn (show demo03)
+    print demo03
 
     putStrLn "\ndemo04"
-    putStrLn (show demo04)
+    print demo04
 
     putStrLn "\ndemo05"
-    putStrLn (show demo05)
+    print demo05
 
     putStrLn "\ndemo06"
     -- error
-    --putStrLn (show demo06)
+    --print demo06
 
     putStrLn "\ndemo07"
     -- error
-    --putStrLn (show demo07)
+    --print demo07
 
     putStrLn "\ndemo08"
     -- bottom
-    --putStrLn (show demo08)
+    --print demo08)
 
     putStrLn "\ndemo09"
     -- infinite
-    --putStrLn (show demo09)
+    --print demo09)
 
     putStrLn "\ndemo10"
-    putStrLn (show demo10)
+    print demo10
 
     putStrLn "\ndemo11"
-    putStrLn (show demo11)
+    print demo11
 
     putStrLn "\ndemo12"
     demo12
 
     putStrLn "\ndemo13"
-    putStrLn (show demo13)
+    print demo13
 
     putStrLn "\ndemo14"
-    putStrLn (show demo14)
+    print demo14
 
     putStrLn "\ndemo15"
     demo15
@@ -395,7 +401,7 @@ main = do
     demo31
 
     putStrLn "\ndemo32"
-    putStrLn (show demo32)
+    print demo32
 
     putStrLn "\ndemo33"
     demo33

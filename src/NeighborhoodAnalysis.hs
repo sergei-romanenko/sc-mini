@@ -10,7 +10,7 @@ import Data.List
 --  2) e1 is an instance of e2 (e2 < e1)
 --  3) (eval p e1) terminates
 nan :: Machine Conf -> Expr -> Conf -> Subst
-nan m e1 e2 = filter (\(k, v) -> not (Var k == v)) sub where
+nan m e1 e2 = filter (\(k, v) -> Var k /= v) sub where
     sub0 = map (\n -> (n, Var n)) (vnames e2)
     sub = nan' sub0 (buildTree m e1) (buildTree m e2)
 
@@ -33,7 +33,7 @@ nan' sub _ _ =
 
 -- compose substitution
 (///) :: Subst -> Subst -> Subst
-(///) sub1 sub2 = (map (\(k, v) -> (k, v // sub2)) sub1)
+(///) sub1 sub2 = map (\(k, v) -> (k, v // sub2)) sub1
 
 -- by design k1 == k2
 intersectSubst :: Subst -> Subst -> Subst

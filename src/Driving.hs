@@ -5,7 +5,7 @@ import DataUtil
 import Interpreter
 
 buildTree :: Machine Conf -> Conf -> Tree Conf
-buildTree m e = bt m nameSupply e
+buildTree m = bt m nameSupply
 
 bt :: Machine Conf -> NameSupply -> Conf -> Tree Conf
 bt m ns c = case m ns c of
@@ -22,7 +22,7 @@ driveMachine p = driveStep where
     driveStep ns (GCall gn args) | isVar (head args) =
         Variants (map (scrutinize ns args) (gDefs p gn))
     driveStep ns (GCall gn (arg:args)) | isCall arg =
-        case (driveStep ns arg) of
+        case driveStep ns arg of
             Transient pat t -> Transient pat (GCall gn (t:args))
             Variants cs -> Variants (map (\(c, t) -> (c, GCall gn (t:args))) cs)
     driveStep ns (Let (x, t1) t2) =
