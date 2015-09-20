@@ -1,0 +1,28 @@
+name:                sc-mini
+version:             0.1.0.0
+synopsis:            A minimal supercompiler.
+description:         This is the minimal supercompiler. 
+                     The goal is to stress the main features of supercompilation for a working
+                     functional programmer.
+                     Its design is an attempt to illustrate the following formula:
+                       Supercompiler = Driving + Positive info propagation + Folding + Simplification + Generalization
+homepage:            https://github.com/sergei-romanenko/sc-mini
+license:             PublicDomain
+license-file:        LICENSE
+author:              Sergei Romanenko
+maintainer:          sergei.romanenko@supercompilers.ru
+-- copyright:           
+category:            Experimental
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     NeighborhoodAnalysis, DataIO, TreeInterpreter, Generator, Driving,
+                       Supercompiler, Demonstration, Data, DataUtil, Deforester, Prototype,
+                       Folding, Interpreter
+  -- other-modules:       
+  -- other-extensions:    
+  build-depends:       base >=4.8 && <4.9
+  hs-source-dirs:      src
+  default-language:    Haskell2010
