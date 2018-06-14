@@ -27,7 +27,7 @@ evalStep p (GCall gname (Ctr cname cargs : args)) =
 
 evalStep p (GCall gname (arg:args)) =
     case evalStep p arg of
-        Transient contr arg' -> Transient contr (GCall gname (arg':args)) where
+        Transient contr arg' -> Transient contr (GCall gname (arg':args))
 
 -- OLD STUFF FURTHER --
 

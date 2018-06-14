@@ -5,5 +5,8 @@
 /.cabal-sandbox
 /cabal.sandbox.config
 /.project
+/.idea
 *.lkshs
 *.lkshw
+/.stack-work
+*.iml
